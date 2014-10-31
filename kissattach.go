@@ -5,7 +5,6 @@ import (
 	krpty "github.com/kr/pty"
 	"os"
 	"os/exec"
-	"time"
 )
 
 func KissAttach(port string, mtu int) (pty *os.File, err error) {
@@ -13,8 +12,6 @@ func KissAttach(port string, mtu int) (pty *os.File, err error) {
 	if err != nil {
 		return nil, err
 	}
-
-	time.Sleep(100 * time.Millisecond)
 
 	args := []string{tty.Name(), port, "-l"}
 	if mtu > 0 {
@@ -31,9 +28,11 @@ func KissAttach(port string, mtu int) (pty *os.File, err error) {
 		return nil, err
 	}
 
-	// Wait for kissattach to open tty
-	time.Sleep(2 * time.Second)
+	// Wait for kissattach to daemonize
+	if err = c.Wait(); err != nil {
+		pty.Close()
+		return nil, err
+	}
 
-	err = tty.Close()
-	return pty, err
+	return pty, tty.Close()
 }
